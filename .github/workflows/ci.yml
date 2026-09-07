@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   ojs-3-5:
-    name: OJS 3.5 / PHP ${{ matrix.php-version }} / ${{ matrix.database }}
+    name: Keyword Paste Splitter
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
