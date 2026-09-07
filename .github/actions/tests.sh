@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-plugin_dir="plugins/generic/keywordPasteSplitter"
+plugin_dir="${PLUGIN_DIR:-plugins/generic/keywordPasteSplitter}"
 
 if ! command -v xmllint >/dev/null || ! command -v msgfmt >/dev/null; then
     sudo apt-get update
