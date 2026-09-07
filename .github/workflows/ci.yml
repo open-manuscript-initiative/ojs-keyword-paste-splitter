@@ -1,0 +1,39 @@
+name: PKP plugin checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ojs-3-5:
+    name: OJS 3.5 / PHP ${{ matrix.php-version }} / ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - application: ojs
+            php-version: '8.2'
+            database: mysql
+          - application: ojs
+            php-version: '8.3'
+            database: mysql
+          - application: ojs
+            php-version: '8.2'
+            database: pgsql
+          - application: ojs
+            php-version: '8.3'
+            database: pgsql
+
+    steps:
+      - uses: pkp/pkp-github-actions@v1
+        with:
+          node_version: 20
+          branch: stable-3_5_0
+          repository: open-manuscript-initiative
+          plugin: true

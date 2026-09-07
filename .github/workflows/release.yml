@@ -1,0 +1,55 @@
+name: Package plugin release
+
+on:
+  push:
+    tags:
+      - '*.*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          release="$(sed -n 's:.*<release>\(.*\)</release>.*:\1:p' version.xml)"
+          test "$release" = "$GITHUB_REF_NAME"
+
+      - name: Build PKP-compatible package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="$RUNNER_TEMP/keywordPasteSplitter"
+          mkdir -p "$package_root/js" "$package_root/locale"
+          cp KeywordPasteSplitterPlugin.php index.php version.xml LICENSE README.md CHANGELOG.md "$package_root/"
+          cp -R js/. "$package_root/js/"
+          cp -R locale/. "$package_root/locale/"
+          tar -C "$RUNNER_TEMP" -czf "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" keywordPasteSplitter
+          md5sum "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" > "keywordPasteSplitter-${GITHUB_REF_NAME}.md5"
+          sha256sum "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" > "keywordPasteSplitter-${GITHUB_REF_NAME}.sha256"
+          test "$(tar -tzf "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" | cut -d/ -f1 | sort -u)" = keywordPasteSplitter
+
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; refusing to modify it." >&2
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" \
+            "keywordPasteSplitter-${GITHUB_REF_NAME}.md5" \
+            "keywordPasteSplitter-${GITHUB_REF_NAME}.sha256" \
+            --verify-tag \
+            --title "Keyword Paste Splitter $GITHUB_REF_NAME" \
+            --generate-notes
