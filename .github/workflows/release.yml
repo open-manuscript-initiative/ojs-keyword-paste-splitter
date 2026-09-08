@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - '*.*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Four-part plugin version from version.xml
+        required: true
+        default: 1.1.0.0
 
 permissions:
   contents: write
@@ -11,6 +17,8 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -18,9 +26,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
           release="$(sed -n 's:.*<release>\(.*\)</release>.*:\1:p' version.xml)"
-          test "$release" = "$GITHUB_REF_NAME"
+          test "$release" = "$RELEASE_VERSION"
 
       - name: Build PKP-compatible package
         shell: bash
@@ -31,10 +39,10 @@ jobs:
           cp KeywordPasteSplitterPlugin.php index.php version.xml LICENSE README.md CHANGELOG.md "$package_root/"
           cp -R js/. "$package_root/js/"
           cp -R locale/. "$package_root/locale/"
-          tar -C "$RUNNER_TEMP" -czf "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" keywordPasteSplitter
-          md5sum "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" > "keywordPasteSplitter-${GITHUB_REF_NAME}.md5"
-          sha256sum "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" > "keywordPasteSplitter-${GITHUB_REF_NAME}.sha256"
-          test "$(tar -tzf "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" | cut -d/ -f1 | sort -u)" = keywordPasteSplitter
+          tar -C "$RUNNER_TEMP" -czf "keywordPasteSplitter-${RELEASE_VERSION}.tar.gz" keywordPasteSplitter
+          md5sum "keywordPasteSplitter-${RELEASE_VERSION}.tar.gz" > "keywordPasteSplitter-${RELEASE_VERSION}.md5"
+          sha256sum "keywordPasteSplitter-${RELEASE_VERSION}.tar.gz" > "keywordPasteSplitter-${RELEASE_VERSION}.sha256"
+          test "$(tar -tzf "keywordPasteSplitter-${RELEASE_VERSION}.tar.gz" | cut -d/ -f1 | sort -u)" = keywordPasteSplitter
 
       - name: Publish immutable GitHub release
         env:
@@ -42,14 +50,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists; refusing to modify it." >&2
+          if gh release view "$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "Release $RELEASE_VERSION already exists; refusing to modify it." >&2
             exit 1
           fi
-          gh release create "$GITHUB_REF_NAME" \
-            "keywordPasteSplitter-${GITHUB_REF_NAME}.tar.gz" \
-            "keywordPasteSplitter-${GITHUB_REF_NAME}.md5" \
-            "keywordPasteSplitter-${GITHUB_REF_NAME}.sha256" \
-            --verify-tag \
-            --title "Keyword Paste Splitter $GITHUB_REF_NAME" \
+          release_args=(
+            "$RELEASE_VERSION"
+            "keywordPasteSplitter-${RELEASE_VERSION}.tar.gz"
+            "keywordPasteSplitter-${RELEASE_VERSION}.md5"
+            "keywordPasteSplitter-${RELEASE_VERSION}.sha256"
+            --title "Keyword Paste Splitter $RELEASE_VERSION"
             --generate-notes
+          )
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            release_args+=(--target "$GITHUB_SHA")
+          else
+            release_args+=(--verify-tag)
+          fi
+          gh release create "${release_args[@]}"
