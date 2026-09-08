@@ -32,7 +32,7 @@ After the public release exists, add an entry to the Open Manuscript Initiative 
   <maintainer>
     <name>Open Manuscript Initiative</name>
     <institution>Open Manuscript Initiative</institution>
-    <email>REPLACE_WITH_PUBLIC_MAINTAINER_EMAIL</email>
+    <email>vargawebkiado@gmail.com</email>
   </maintainer>
   <release date="2026-09-07" version="1.1.0.0" md5="REPLACE_WITH_RELEASE_MD5">
     <package>https://github.com/open-manuscript-initiative/ojs-keyword-paste-splitter/releases/download/1.1.0.0/keywordPasteSplitter-1.1.0.0.tar.gz</package>
