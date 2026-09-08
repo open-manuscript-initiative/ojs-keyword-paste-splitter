@@ -1,0 +1,54 @@
+name: PKP plugin checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: PHP ${{ matrix.php }} and plugin checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint PHP
+        run: |
+          docker run --rm \
+            --volume "$PWD:/plugin" \
+            --workdir /plugin \
+            "php:${{ matrix.php }}-cli" \
+            sh -c "find . -type f -name '*.php' -print0 | xargs -0 -n1 php -l"
+
+      - name: Install XML and gettext validators
+        if: matrix.php == '8.3'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext libxml2-utils
+
+      - name: Run JavaScript, XML and locale checks
+        if: matrix.php == '8.3'
+        env:
+          PLUGIN_DIR: .
+        run: .github/actions/tests.sh
+
+      - name: Validate PKP release layout
+        if: matrix.php == '8.3'
+        run: |
+          set -euo pipefail
+          package_root="$RUNNER_TEMP/keywordPasteSplitter"
+          mkdir -p "$package_root/js" "$package_root/locale"
+          cp KeywordPasteSplitterPlugin.php index.php version.xml LICENSE README.md CHANGELOG.md "$package_root/"
+          cp -R js/. "$package_root/js/"
+          cp -R locale/. "$package_root/locale/"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/plugin.tar.gz" keywordPasteSplitter
+          test "$(tar -tzf "$RUNNER_TEMP/plugin.tar.gz" | cut -d/ -f1 | sort -u)" = keywordPasteSplitter
