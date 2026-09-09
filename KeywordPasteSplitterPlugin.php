@@ -27,10 +27,9 @@ class KeywordPasteSplitterPlugin extends GenericPlugin
             return $success;
         }
 
-        // Generic plugins may be registered before OJS has resolved a journal
-        // context. Register the hook unconditionally and enforce the enabled
-        // state for the actual request context inside addAssets().
-        Hook::add('TemplateManager::display', $this->addAssets(...));
+        if ($this->getEnabled($mainContextId)) {
+            Hook::add('TemplateManager::display', $this->addAssets(...));
+        }
 
         return $success;
     }
@@ -48,28 +47,21 @@ class KeywordPasteSplitterPlugin extends GenericPlugin
     }
 
     /**
-     * Load the paste handler only when the plugin is enabled for the current
-     * journal. The asset itself is restricted to the editorial backend.
+     * Load the paste handler only in the editorial backend.
      *
      * @param array{0: PKPTemplateManager} $args
      */
     public function addAssets(string $hookName, array $args): bool
     {
-        $request = Application::get()->getRequest();
-        $context = $request->getContext();
-
-        if (!$context || !$this->getEnabled($context->getId())) {
-            return Hook::CONTINUE;
-        }
-
         $templateManager = $args[0];
+        $request = Application::get()->getRequest();
         $version = $this->getCurrentVersion();
         $versionQuery = $version ? '?v=' . rawurlencode($version->getVersionString()) : '';
 
         $templateManager->addJavaScript(
             'keywordPasteSplitter',
             $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/keywordPasteSplitter.js' . $versionQuery,
-            ['contexts' => ['backend']]
+            ['contexts' => 'backend']
         );
 
         return Hook::CONTINUE;

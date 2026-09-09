@@ -18,7 +18,8 @@ Whitespace is normalized, empty values are discarded, and duplicates are removed
 
 | Plugin release | OJS release |
 | --- | --- |
-| 1.1.1.0 | OJS 3.5.0-5 LTS |
+| 1.1.2.0 | OJS 3.5.0-5 LTS |
+| 1.1.1.0 | OJS 3.5.0-5 LTS — superseded by 1.1.2.0 |
 | 1.1.0.0 | OJS 3.5.0-5 LTS |
 
 The plugin is tested with PHP 8.2 and 8.3 and with both MySQL and PostgreSQL through PKP's plugin test environment.
@@ -32,9 +33,9 @@ The plugin is tested with PHP 8.2 and 8.3 and with both MySQL and PostgreSQL thr
 3. Select **Upload A New Plugin** and upload the `.tar.gz` file.
 4. Find **Keyword Paste Splitter** under **Generic Plugins** and enable it.
 
-The plugin is self-contained. No bootstrap, loader, or other PHP file needs to be copied into the OJS installation root.
+Starting with version 1.1.2.0, the plugin entry point explicitly loads its own namespaced plugin class. No bootstrap, loader, or other PHP file needs to be copied into the OJS installation root.
 
-If an earlier local deployment used an additional root-level PHP loader as a workaround, upgrade to version 1.1.1.0 first, verify keyword pasting in the target journal, and only then remove that obsolete helper file.
+If an earlier local deployment used an additional root-level PHP loader as a workaround, install version 1.1.2.0 while the helper is still present, verify that the plugin is enabled, then remove the helper and test keyword pasting again. The helper is no longer part of the supported installation.
 
 ### Manual installation
 
@@ -73,20 +74,20 @@ Only the editorial backend loads the JavaScript asset. Public journal pages are 
 
 The CI workflow uses the Open Manuscript Initiative forks of [OJS](https://github.com/open-manuscript-initiative/ojs) and the related PKP repositories. The `stable-3_5_0` branch is pinned to the OJS 3.5.0-5 LTS source.
 
-Run the plugin registration and JavaScript regression tests locally with:
+Run the PHP entry-point and JavaScript regression tests locally with:
 
 ```bash
 php tests/pluginRegistration.test.php
 node --test tests/keywordPasteSplitter.test.cjs
 ```
 
-The registration regression test verifies that the generic plugin registers its template hook even when OJS has not yet resolved a journal context, while the JavaScript asset is still loaded only for journals where the plugin is enabled.
+The PHP regression test loads the real plugin `index.php`, verifies that it can instantiate the namespaced plugin class without an external helper file, and checks registration of the plugin-local backend JavaScript asset.
 
 The PKP workflow also checks PHP syntax, `version.xml`, locale catalogs, PHP 8.2/8.3, MySQL, and PostgreSQL.
 
 ## Releases and Plugin Gallery
 
-Release tags use PKP's required four-part version format, for example `1.1.1.0`. A matching tag automatically creates a `.tar.gz` package with a single top-level `keywordPasteSplitter` directory and publishes MD5 and SHA-256 checksums.
+Release tags use PKP's required four-part version format, for example `1.1.2.0`. A matching tag automatically creates a `.tar.gz` package with a single top-level `keywordPasteSplitter` directory and publishes MD5 and SHA-256 checksums.
 
 See [PKP release and Plugin Gallery preparation](docs/PKP_RELEASE.md) for the complete maintainer procedure.
 

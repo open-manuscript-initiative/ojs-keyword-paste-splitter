@@ -2,14 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.2.0] - 2026-09-09
+
+### Fixed
+
+- Made the plugin entry point self-contained by loading `KeywordPasteSplitterPlugin.php` from `index.php` before instantiating the namespaced plugin class.
+- Removed the need for an external OJS-root PHP bootstrap/loader workaround.
+- Restored the hook-registration behavior used by the previously working 1.1.0.0 release, limiting the corrective patch to plugin bootstrap rather than changing runtime context semantics.
+- Replaced the registration stub test with an entry-point regression test that includes the real plugin `index.php` and verifies plugin-local JavaScript registration without an external helper.
+
 ## [1.1.1.0] - 2026-09-09
 
 ### Fixed
 
-- Register the `TemplateManager::display` hook independently of the journal context available during generic-plugin registration, following PKP's context-safe plugin-loading guidance.
+- Register the `TemplateManager::display` hook independently of the journal context available during generic-plugin registration.
 - Check the plugin's enabled state against the actual request journal inside the asset hook before loading the keyword handler.
-- Use the normal PKP backend asset API with the plugin-local JavaScript file, so no additional bootstrap or loader PHP file is required in the OJS installation root.
-- Add a PHP regression test covering context-free registration, disabled journals, enabled journals, and the plugin-local asset URL.
+
+### Known issue
+
+- The plugin entry point did not explicitly load `KeywordPasteSplitterPlugin.php`; installations that depended on an external bootstrap/helper could therefore stop working after that helper was removed. This is fixed in 1.1.2.0.
 
 ## [1.1.0.0] - 2026-09-07
 
