@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.1.0] - 2026-09-09
+
+### Fixed
+
+- Register the `TemplateManager::display` hook independently of the journal context available during generic-plugin registration, following PKP's context-safe plugin-loading guidance.
+- Check the plugin's enabled state against the actual request journal inside the asset hook before loading the keyword handler.
+- Use the normal PKP backend asset API with the plugin-local JavaScript file, so no additional bootstrap or loader PHP file is required in the OJS installation root.
+- Add a PHP regression test covering context-free registration, disabled journals, enabled journals, and the plugin-local asset URL.
+
 ## [1.1.0.0] - 2026-09-07
 
 ### Added
