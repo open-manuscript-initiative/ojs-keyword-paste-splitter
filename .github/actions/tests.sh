@@ -10,6 +10,7 @@ if ! command -v xmllint >/dev/null || ! command -v msgfmt >/dev/null; then
 fi
 
 find "$plugin_dir" -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+php "$plugin_dir/tests/pluginRegistration.test.php"
 node --test "$plugin_dir/tests/keywordPasteSplitter.test.cjs"
 xmllint --noout "$plugin_dir/version.xml"
 
