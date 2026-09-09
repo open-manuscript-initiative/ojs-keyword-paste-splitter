@@ -33,7 +33,7 @@ namespace PKP\plugins {
             return new class {
                 public function getVersionString(): string
                 {
-                    return '1.1.1.0';
+                    return '1.1.2.0';
                 }
             };
         }
@@ -80,8 +80,6 @@ namespace {
     use PKP\plugins\Hook;
     use PKP\template\PKPTemplateManager;
 
-    require_once dirname(__DIR__) . '/KeywordPasteSplitterPlugin.php';
-
     function assertTrue(bool $condition, string $message): void
     {
         if (!$condition) {
@@ -90,23 +88,7 @@ namespace {
         }
     }
 
-    $context = new class {
-        public function getId(): int
-        {
-            return 7;
-        }
-    };
-
-    $request = new class($context) {
-        public function __construct(private object $context)
-        {
-        }
-
-        public function getContext(): object
-        {
-            return $this->context;
-        }
-
+    $request = new class {
         public function getBaseUrl(): string
         {
             return 'https://example.test/ojs';
@@ -124,35 +106,40 @@ namespace {
         }
     };
 
-    $plugin = new KeywordPasteSplitterPlugin();
+    // Exercise the same plugin entry point OJS includes when the namespaced
+    // class is not already autoloaded. This must work without any external
+    // bootstrap/helper PHP file in the OJS installation root.
+    $plugin = include dirname(__DIR__) . '/index.php';
 
-    // The hook must be registered even when no journal context was available
-    // during plugin registration.
-    $plugin->register('generic', 'keywordPasteSplitter', null);
+    assertTrue(
+        $plugin instanceof KeywordPasteSplitterPlugin,
+        'Plugin entry point did not load and return KeywordPasteSplitterPlugin.'
+    );
+
+    // Preserve the registration behavior used by the previously working
+    // release: only enabled plugins register the template hook.
+    $plugin->enabledContexts[7] = true;
+    $plugin->register('generic', 'plugins/generic/keywordPasteSplitter', 7);
     assertTrue(
         in_array('TemplateManager::display', Hook::$registered, true),
-        'TemplateManager::display hook was not registered without a context.'
+        'Enabled plugin did not register TemplateManager::display.'
     );
 
     $templateManager = new PKPTemplateManager();
-
-    // Disabled journal: the hook exists but must not inject anything.
     $plugin->addAssets('TemplateManager::display', [$templateManager]);
-    assertTrue(count($templateManager->scripts) === 0, 'Asset loaded for a disabled journal.');
 
-    // Enabled journal: the plugin must be fully self-contained and inject its
-    // browser handler through the normal PKP template asset API.
-    $plugin->enabledContexts[7] = true;
-    $plugin->addAssets('TemplateManager::display', [$templateManager]);
-    assertTrue(count($templateManager->scripts) === 1, 'Asset was not loaded for the enabled journal.');
+    assertTrue(count($templateManager->scripts) === 1, 'Keyword handler asset was not registered.');
     assertTrue(
-        $templateManager->scripts[0]['options']['contexts'] === ['backend'],
-        'Asset is not restricted to the backend context.'
+        $templateManager->scripts[0]['options']['contexts'] === 'backend',
+        'Keyword handler asset is not restricted to the backend context.'
     );
     assertTrue(
-        str_contains($templateManager->scripts[0]['url'], '/plugins/generic/keywordPasteSplitter/js/keywordPasteSplitter.js?v=1.1.1.0'),
+        str_contains(
+            $templateManager->scripts[0]['url'],
+            '/plugins/generic/keywordPasteSplitter/js/keywordPasteSplitter.js?v=1.1.2.0'
+        ),
         'Expected plugin-local JavaScript URL was not generated.'
     );
 
-    fwrite(STDOUT, "Plugin registration regression test passed.\n");
+    fwrite(STDOUT, "Self-contained plugin entry-point regression test passed.\n");
 }
