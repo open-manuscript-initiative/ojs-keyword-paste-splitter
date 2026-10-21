@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.3.0] - 2026-10-21
+
+### Fixed
+
+- Improve detection of OJS controlled-vocabulary Vue components during multi-keyword paste.
+- Intercept multi-value pastes before OJS treats the pasted list as one keyword when the component is available.
+
+### Verification
+
+- Requires manual validation in the OJS editorial keyword field after installation.
+
 ## [1.1.2.0] - 2026-09-09
 
 ### Fixed
