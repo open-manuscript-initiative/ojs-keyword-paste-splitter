@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.5.0] - 2026-10-21
+
+### Changed
+
+- Restore sequential keyword insertion using short delays and simulated Enter events instead of direct Vue selection mutation (PR #10).
+
+### Verification
+
+- Requires testing in the actual OJS keyword editor; simulated keyboard events may not be handled like physical keystrokes.
+
 ## [1.1.4.0] - 2026-10-21
 
 ### Fixed
