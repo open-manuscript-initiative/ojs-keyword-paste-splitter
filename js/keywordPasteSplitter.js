@@ -178,21 +178,55 @@
         return true;
     }
 
+    // Submit each keyword through the same input/Enter pathway as manual entry.
+    // Vue needs a render turn between entries to reset its controlled input.
+    var PASTE_DELAY_MS = 90;
+    var pendingInputs = typeof WeakSet === 'function' ? new WeakSet() : null;
+
+    function setNativeInputValue(input, value) {
+        var prototype = Object.getPrototypeOf(input);
+        var descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+        if (descriptor && typeof descriptor.set === 'function') {
+            descriptor.set.call(input, value);
+        } else {
+            input.value = value;
+        }
+        input.dispatchEvent(new Event('input', {bubbles: true}));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+
+    function submitSequentially(input, items, index) {
+        if (!input.isConnected || index >= items.length) {
+            if (pendingInputs) pendingInputs.delete(input);
+            return;
+        }
+        input.focus();
+        setNativeInputValue(input, items[index]);
+        // OJS controlled-vocabulary fields handle Enter to create a tag.
+        rootKeyboardEvent(input, 'keydown');
+        rootKeyboardEvent(input, 'keyup');
+        setTimeout(function () {
+            submitSequentially(input, items, index + 1);
+        }, PASTE_DELAY_MS);
+    }
+
+    function rootKeyboardEvent(input, type) {
+        input.dispatchEvent(new KeyboardEvent(type, {
+            key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
+            bubbles: true, cancelable: true
+        }));
+    }
+
     function handlePaste(event) {
         var input = event.target;
         var items;
-
         if (!isKeywordInput(input) || !event.clipboardData) return;
-
         items = cleanItems(event.clipboardData.getData('text/plain'));
-        if (items.length < 2) return;
-
-        // Stop OJS from accepting the entire pasted list as one keyword.
-        // Only intercept when the Vue controlled-vocabulary component is available.
-        if (!findFieldComponent(input)) return;
+        if (items.length < 2 || (pendingInputs && pendingInputs.has(input))) return;
         event.preventDefault();
         event.stopImmediatePropagation();
-        addThroughComponent(input, items);
+        if (pendingInputs) pendingInputs.add(input);
+        submitSequentially(input, items, 0);
     }
 
     function install(documentObject) {
