@@ -27,9 +27,9 @@ class KeywordPasteSplitterPlugin extends GenericPlugin
             return $success;
         }
 
-        if ($this->getEnabled($mainContextId)) {
-            Hook::add('TemplateManager::display', $this->addAssets(...));
-        }
+        // OJS can register generic plugins before resolving the journal context.
+        // Defer the enabled-state check until the template is rendered.
+        Hook::add('TemplateManager::display', $this->addAssets(...));
 
         return $success;
     }
@@ -53,15 +53,20 @@ class KeywordPasteSplitterPlugin extends GenericPlugin
      */
     public function addAssets(string $hookName, array $args): bool
     {
-        $templateManager = $args[0];
         $request = Application::get()->getRequest();
+        $context = $request->getContext();
+        if (!$context || !$this->getEnabled($context->getId())) {
+            return Hook::CONTINUE;
+        }
+
+        $templateManager = $args[0];
         $version = $this->getCurrentVersion();
         $versionQuery = $version ? '?v=' . rawurlencode($version->getVersionString()) : '';
 
         $templateManager->addJavaScript(
             'keywordPasteSplitter',
             $request->getBaseUrl() . '/' . $this->getPluginPath() . '/js/keywordPasteSplitter.js' . $versionQuery,
-            ['contexts' => 'backend']
+            ['contexts' => ['backend']]
         );
 
         return Hook::CONTINUE;
