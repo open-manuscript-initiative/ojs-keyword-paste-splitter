@@ -33,7 +33,7 @@ namespace PKP\plugins {
             return new class {
                 public function getVersionString(): string
                 {
-                    return '1.1.2.0';
+                    return '1.1.3.0';
                 }
             };
         }
@@ -88,7 +88,13 @@ namespace {
         }
     }
 
-    $request = new class {
+    $context = new class {
+        public function getId(): int { return 7; }
+    };
+    $request = new class($context) {
+        public function __construct(private ?object $context) {}
+        public function getContext(): ?object { return $this->context; }
+        public function setContext(?object $context): void { $this->context = $context; }
         public function getBaseUrl(): string
         {
             return 'https://example.test/ojs';
@@ -116,10 +122,8 @@ namespace {
         'Plugin entry point did not load and return KeywordPasteSplitterPlugin.'
     );
 
-    // Preserve the registration behavior used by the previously working
-    // release: only enabled plugins register the template hook.
-    $plugin->enabledContexts[7] = true;
-    $plugin->register('generic', 'plugins/generic/keywordPasteSplitter', 7);
+    // OJS can register a plugin without a resolved journal context.
+    $plugin->register('generic', 'plugins/generic/keywordPasteSplitter', null);
     assertTrue(
         in_array('TemplateManager::display', Hook::$registered, true),
         'Enabled plugin did not register TemplateManager::display.'
@@ -127,19 +131,25 @@ namespace {
 
     $templateManager = new PKPTemplateManager();
     $plugin->addAssets('TemplateManager::display', [$templateManager]);
-
+    assertTrue(count($templateManager->scripts) === 0, 'Disabled journal loaded script.');
+    $plugin->enabledContexts[7] = true;
+    $plugin->addAssets('TemplateManager::display', [$templateManager]);
     assertTrue(count($templateManager->scripts) === 1, 'Keyword handler asset was not registered.');
     assertTrue(
-        $templateManager->scripts[0]['options']['contexts'] === 'backend',
+        $templateManager->scripts[0]['options']['contexts'] === ['backend'],
         'Keyword handler asset is not restricted to the backend context.'
     );
     assertTrue(
         str_contains(
             $templateManager->scripts[0]['url'],
-            '/plugins/generic/keywordPasteSplitter/js/keywordPasteSplitter.js?v=1.1.2.0'
+            '/plugins/generic/keywordPasteSplitter/js/keywordPasteSplitter.js?v=1.1.3.0'
         ),
         'Expected plugin-local JavaScript URL was not generated.'
     );
+
+    $request->setContext(null);
+    $plugin->addAssets('TemplateManager::display', [$templateManager]);
+    assertTrue(count($templateManager->scripts) === 1, 'Missing journal context loaded script.');
 
     fwrite(STDOUT, "Self-contained plugin entry-point regression test passed.\n");
 }
