@@ -18,6 +18,7 @@ Whitespace is normalized, empty values are discarded, and duplicates are removed
 
 | Plugin release | OJS release |
 | --- | --- |
+| 1.1.4.0 | OJS 3.5.0-5 LTS |
 | 1.1.3.0 | OJS 3.5.0-5 LTS — improved keyword paste detection; verify on installation |
 | 1.1.2.0 | OJS 3.5.0-5 LTS |
 | 1.1.1.0 | OJS 3.5.0-5 LTS — superseded by 1.1.2.0 |

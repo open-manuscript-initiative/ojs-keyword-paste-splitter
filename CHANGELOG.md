@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.4.0] - 2026-10-21
+
+### Fixed
+
+- Register template hook before journal context is resolved.
+- Restrict asset loading to enabled journals.
+- Add regression tests for context handling.
+
 ## [1.1.3.0] - 2026-10-21
 
 ### Fixed
