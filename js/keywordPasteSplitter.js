@@ -64,7 +64,7 @@
 
         if (FIELD_HINT.test(identity) || LABEL_HINT.test(identity)) return true;
 
-        field = input.closest('.pkpFormField, .pkpAutosuggest, [class*="pkpFormField"], .form-group');
+        field = input.closest('.pkpFormField, .pkpAutosuggest, [class*="pkpFormField"], .form-group, [class*="controlledVocab"], [class*="ControlledVocab"]');
         return !!field && LABEL_HINT.test(field.textContent || '');
     }
 
@@ -75,6 +75,7 @@
         if (!node) return null;
         if (node.__vueParentComponent) return node.__vueParentComponent;
         if (node.__vue__) return node.__vue__.$ || node.__vue__;
+        if (node._vnode && node._vnode.component) return node._vnode.component;
 
         try {
             names = Object.getOwnPropertyNames(node);
@@ -114,7 +115,8 @@
                     (
                         typeName === 'FieldControlledVocab' ||
                         FIELD_HINT.test(String(fieldName)) ||
-                        (typeof proxy.selectSuggestion === 'function' && 'currentSelected' in proxy)
+                        'currentSelected' in proxy ||
+                        typeof proxy.selectSuggestion === 'function'
                     )
                 ) {
                     return proxy;
@@ -183,10 +185,14 @@
         if (!isKeywordInput(input) || !event.clipboardData) return;
 
         items = cleanItems(event.clipboardData.getData('text/plain'));
-        if (items.length < 2 || !addThroughComponent(input, items)) return;
+        if (items.length < 2) return;
 
+        // Stop OJS from accepting the entire pasted list as one keyword.
+        // Only intercept when the Vue controlled-vocabulary component is available.
+        if (!findFieldComponent(input)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
+        addThroughComponent(input, items);
     }
 
     function install(documentObject) {
