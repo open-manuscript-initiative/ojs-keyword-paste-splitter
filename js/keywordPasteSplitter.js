@@ -183,10 +183,14 @@
         if (!isKeywordInput(input) || !event.clipboardData) return;
 
         items = cleanItems(event.clipboardData.getData('text/plain'));
-        if (items.length < 2 || !addThroughComponent(input, items)) return;
+        if (items.length < 2) return;
 
+        // Stop OJS from accepting the entire pasted list as one keyword.
+        // Only intercept when the Vue controlled-vocabulary component is available.
+        if (!findFieldComponent(input)) return;
         event.preventDefault();
         event.stopImmediatePropagation();
+        addThroughComponent(input, items);
     }
 
     function install(documentObject) {
